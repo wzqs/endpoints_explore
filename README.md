@@ -1,8 +1,8 @@
 # endpoints_explore
-Endpoints Explorer is a Python script for detecting sensitive information in SpringBoot Actuator Endpoints (and much more).
+Endpoints Explorer is a Python script that employs multiple bypass rules to discover sensitive SpringBoot Actuator Endpoints (and supports other sensitive endpoints).
 
 ## Overview
-This script uses the aiohttp library to make asynchronous HTTP requests and scans the SpringBoot Actuator endpoints for sensitive information in a highly concurrent manner. The script attempts multiple bypass rules and returns as soon as sensitive information is found.
+This script uses the aiohttp library to make asynchronous HTTP requests and scans the SpringBoot Actuator (and supports other) endpoints for sensitive information in a highly concurrent manner. The script attempts multiple bypass rules and returns as soon as sensitive information is found.
 
 ## Features
 - Tests with bypass rules(`/..;/`,`/;/`,`/;js/`,`/../`,`urlencode` etc.)
