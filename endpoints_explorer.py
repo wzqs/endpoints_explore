@@ -1,23 +1,22 @@
-from urllib.parse import urljoin, urlparse
+import argparse
+import logging
+import asyncio
+import difflib
+import itertools
+import random
+import ssl
+import string
+import warnings
+import http.cookies
+from urllib.parse import urljoin
+
+import aiohttp
 from colorama import Fore
 
-import asyncio
-import aiohttp
-import random
-import string
-import argparse
-import itertools
-import difflib
-import ssl
-
 # skip charset_normalizer warnging
-import warnings
-
 warnings.filterwarnings("ignore", category=UserWarning, module='charset_normalizer')
 
 # fix cookie error: illegal key
-import http.cookies
-
 http.cookies._is_legal_key = lambda _: True
 
 # Timeout configuration
@@ -27,8 +26,14 @@ TIMEOUT = 3
 tried_requests_counter = 0
 counter_lock = asyncio.Lock()
 
+diff_sensitive_responses = {}
 
-async def check_path_exists(base_url, path, session, semaphore, not_found_indicator, verbose):
+# logger configuration
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
+
+async def check_path_exists(base_url, path, session, semaphore, not_found_indicator):
     """
     Check valid path
     """
@@ -52,8 +57,7 @@ async def check_path_exists(base_url, path, session, semaphore, not_found_indica
                 # compare similarity
                 return similarity < 0.9
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            if verbose:
-                print(f"[-] An error occurred while checking {url}: {type(e).__name__} - {e}")
+            logger.error(f"[-] An error occurred while checking {url}: {type(e).__name__} - {e}")
             return False
 
 
@@ -69,7 +73,6 @@ def generate_bypass_rules(normal_path):
     random_chars = "".join(random.choices(string.ascii_lowercase, k=3))
     # Path addition /;/ Random character rules
     modified_rules = [rule.replace("/", f"/;{random_chars}/", 1) + f";{random_chars}" for rule in bypass_rules]
-
     bypass_rules.extend(modified_rules)
 
     # Adding '..' rules
@@ -79,31 +82,44 @@ def generate_bypass_rules(normal_path):
     return list(dict.fromkeys(bypass_rules))
 
 
-async def fetch(url, session, semaphore, verbose):
+async def fetch(url, session, semaphore):
     global tried_requests_counter
     async with semaphore:
         try:
             timeout = aiohttp.ClientTimeout(total=TIMEOUT)
             async with session.get(url, timeout=timeout) as response:
-                # text = await response.text()
-                if verbose:
-                    print(f"[DEBUG] Trying {url}")
+                # fetch response
+                text = await response.text()
+                text_start = text[:133]
+                logger.debug(f"[DEBUG] Trying {url}")
                 if response.status == 200:
                     content_type = response.headers.get("Content-Type", "")
                     if "application/vnd.spring-boot" in content_type:
-                        print(Fore.RED + f"[+] Actuator endpoint found: {url}" + Fore.RESET)
+                        if text_start not in diff_sensitive_responses:
+                            diff_sensitive_responses[text_start] = True
+                            logger.info(Fore.RED + f"[+] Actuator endpoint found: {url}" + Fore.RESET)
                         return True
+                    # a sensitive file check? Perhaps using OpenAI to check will be more accurate. :)
+                    else:
+                        try:
+                            if text_start not in diff_sensitive_responses:
+                                diff_sensitive_responses[text_start] = True
+                                logger.info(
+                                    Fore.YELLOW + f"[+] Sensitive File found: {url} " + Fore.RESET + Fore.CYAN + f"\nContent: {text_start}" + Fore.RESET)
+                            return True
+                        except UnicodeDecodeError:
+                            pass
+
                 # requests_counter
                 async with counter_lock:
                     tried_requests_counter += 1
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            if verbose:
-                print(f"[-] An error occurred while requesting {url}: {type(e).__name__} - {e}")
+            logger.error(f"[-] An error occurred while requesting {url}: {type(e).__name__} - {e}")
             # pass
             return False
 
 
-async def sensitive_info_detector(base_url, normal_paths, sensitive_files, concurrency, verbose, check_existence):
+async def sensitive_info_detector(base_url, normal_paths, sensitive_files, concurrency, check_existence):
     """
     Main logic
     """
@@ -142,9 +158,9 @@ async def sensitive_info_detector(base_url, normal_paths, sensitive_files, concu
             # if normal_path is empty, then skip
             if not normal_path:
                 continue
-
+            # if check path then skip
             if check_existence and not await check_path_exists(base_url, normal_path, session, semaphore,
-                                                               not_found_indicator, verbose):
+                                                               not_found_indicator):
                 continue
 
             # Rule generation
@@ -157,12 +173,12 @@ async def sensitive_info_detector(base_url, normal_paths, sensitive_files, concu
 
                 if url not in checked_urls:
                     checked_urls.add(url)
-                    tasks.append(fetch(url, session, semaphore, verbose))
+                    tasks.append(fetch(url, session, semaphore))
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         if not any(results):
-            print(f"[-] No sensitive files were found: " + Fore.GREEN + base_url + Fore.RESET)
+            logger.info(f"[-] No sensitive files were found: " + Fore.GREEN + base_url + Fore.RESET)
 
 
 def load_dictionary(file_path):
@@ -218,7 +234,11 @@ def parse_arguments():
     parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
     parser.add_argument("-e", "--check-existence", action="store_true",
                         help="Check if the paths exist before scanning.")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.verbose:
+        logger.setLevel(logging.DEBUG)
+
+    return args
 
 
 def main():
@@ -239,13 +259,13 @@ def main():
         # Extended suffix configuration .json , ;a.js
         sensitive_files = apply_encoding_and_extend(sensitive_files, extensions=["", ".json", ";a.js"])
 
-        asyncio.run(sensitive_info_detector(base_url, normal_paths, sensitive_files, concurrency, args.verbose,
+        asyncio.run(sensitive_info_detector(base_url, normal_paths, sensitive_files, concurrency,
                                             args.check_existence))
 
     except asyncio.TimeoutError:
         pass
     finally:
-        # print(Fore.BLUE + f"[DEBUG] Total tried requests:" + str(tried_requests_counter) + Fore.RESET)
+        logger.debug(Fore.BLUE + f"[DEBUG] Total tried requests:" + str(tried_requests_counter) + Fore.RESET)
         pass
 
 
