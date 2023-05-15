@@ -140,7 +140,7 @@ async def fetch(url, session, semaphore, base_url):
                             if text_hash not in diff_sensitive_responses and text != base_url_content:
                                 diff_sensitive_responses[text_hash] = True
                                 logger.info(
-                                    Fore.YELLOW + f"[+] Sensitive File found: {url} " + Fore.RESET + Fore.CYAN + f"\nContent: {text[:133]}" + Fore.RESET)
+                                    Fore.YELLOW + f"[+] Sensitive File found: {url} " + Fore.RESET + Fore.CYAN + f" Length: {len(text)}" + Fore.RESET)
                                 return True
                         except UnicodeDecodeError:
                             pass
