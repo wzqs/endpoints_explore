@@ -65,3 +65,8 @@ Please note that while the code has been thoroughly tested, there may be potenti
 
 ## Disclaimer
 This script is intended only for lawful, authorized security testing activities and must not be used for any illegal activities. Users are responsible for all consequences of using this script.
+
+## Thanks
+
+- [chatgpt](https://chat.openai.com/)
+- https://github.com/ldbfpiaoran/springboot-acl-bypass
