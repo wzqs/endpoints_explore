@@ -8,12 +8,13 @@ import ssl
 import string
 import warnings
 import http.cookies
+import hashlib
 from urllib.parse import urljoin
 
 import aiohttp
 from colorama import Fore
 
-# skip charset_normalizer warnging
+# skip charset_normalizer warning
 warnings.filterwarnings("ignore", category=UserWarning, module='charset_normalizer')
 
 # fix cookie error: illegal key
@@ -26,7 +27,11 @@ TIMEOUT = 3
 tried_requests_counter = 0
 counter_lock = asyncio.Lock()
 
+# store responses of each sensitive_url
 diff_sensitive_responses = {}
+
+# A new global dictionary for storing the content of each base_url
+base_url_contents = {}
 
 # logger configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -57,7 +62,7 @@ async def check_path_exists(base_url, path, session, semaphore, not_found_indica
                 # compare similarity
                 return similarity < 0.9
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            logger.error(f"[-] An error occurred while checking {url}: {type(e).__name__} - {e}")
+            logger.debug(f"[-] An error occurred while checking {url}: {type(e).__name__} - {e}")
             return False
 
 
@@ -82,40 +87,69 @@ def generate_bypass_rules(normal_path):
     return list(dict.fromkeys(bypass_rules))
 
 
-async def fetch(url, session, semaphore):
+async def get_base_url_content(base_url, session):
+    """
+    Get base url content
+    """
+    try:
+        timeout = aiohttp.ClientTimeout(total=TIMEOUT)
+        async with session.get(base_url, timeout=timeout) as response:
+            text = await response.text()
+            return hash_text(text)
+    except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+        logger.debug(f"[-] An error occurred while checking {base_url}: {type(e).__name__} - {e}")
+        return None
+
+
+def hash_text(text):
+    return hashlib.md5(text.encode()).hexdigest()
+
+
+async def fetch(url, session, semaphore, base_url):
+    global base_url_contents
     global tried_requests_counter
+
     async with semaphore:
         try:
             timeout = aiohttp.ClientTimeout(total=TIMEOUT)
             async with session.get(url, timeout=timeout) as response:
                 # fetch response
                 text = await response.text()
-                text_start = text[:133]
+
+                text_hash = hash_text(text)
                 logger.debug(f"[DEBUG] Trying {url}")
+
+                if base_url not in base_url_contents:
+                    base_url_content = await get_base_url_content(base_url, session)
+                    base_url_contents[base_url] = base_url_content
+                else:
+                    base_url_content = base_url_contents[base_url]
+
                 if response.status == 200:
                     content_type = response.headers.get("Content-Type", "")
                     if "application/vnd.spring-boot" in content_type:
-                        if text_start not in diff_sensitive_responses:
-                            diff_sensitive_responses[text_start] = True
+                        # duplicate results
+                        if not diff_sensitive_responses.setdefault(text_hash, False):
+                            diff_sensitive_responses[text_hash] = True
                             logger.info(Fore.RED + f"[+] Actuator endpoint found: {url}" + Fore.RESET)
-                        return True
+                            return True
                     # a sensitive file check? Perhaps using OpenAI to check will be more accurate. :)
                     else:
                         try:
-                            if text_start not in diff_sensitive_responses:
-                                diff_sensitive_responses[text_start] = True
+                            #  sensitive files if the content does not match the content of base_url
+                            if text_hash not in diff_sensitive_responses and text != base_url_content:
+                                diff_sensitive_responses[text_hash] = True
                                 logger.info(
-                                    Fore.YELLOW + f"[+] Sensitive File found: {url} " + Fore.RESET + Fore.CYAN + f"\nContent: {text_start}" + Fore.RESET)
-                            return True
+                                    Fore.YELLOW + f"[+] Sensitive File found: {url} " + Fore.RESET + Fore.CYAN + f"\nContent: {text[:133]}" + Fore.RESET)
+                                return True
                         except UnicodeDecodeError:
                             pass
-
+                    return False
                 # requests_counter
                 async with counter_lock:
                     tried_requests_counter += 1
         except (aiohttp.ClientError, asyncio.TimeoutError) as e:
-            logger.error(f"[-] An error occurred while requesting {url}: {type(e).__name__} - {e}")
-            # pass
+            logger.debug(f"[-] An error occurred while requesting {url}: {type(e).__name__} - {e}")
             return False
 
 
@@ -173,7 +207,7 @@ async def sensitive_info_detector(base_url, normal_paths, sensitive_files, concu
 
                 if url not in checked_urls:
                     checked_urls.add(url)
-                    tasks.append(fetch(url, session, semaphore))
+                    tasks.append(fetch(url, session, semaphore, base_url))
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
