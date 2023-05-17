@@ -5,9 +5,16 @@ Endpoints Explorer is a Python script that employs multiple bypass rules to disc
 This script uses the aiohttp library to make asynchronous HTTP requests and scans the SpringBoot Actuator (and supports other) endpoints for sensitive information in a highly concurrent manner. The script attempts multiple bypass rules and returns as soon as sensitive information is found.
 
 ## Features
-- Tests with bypass rules(`/..;/`,`/;/`,`/;js/`,`/../`,`urlencode` etc.)
+- Tests with bypass rules(`/..;/`,`/;/`,`/;js/`,`/../`,`(double)urlencode` etc.)
 - Performs highly concurrent scanning with asynchronous HTTP requests
 - Supports checking if paths exist before scanning
+
+## TODO
+
+- add bypass jetty rules [ ] 
+- filter valid results by the length of diff_value [ ] 
+- add more headers to requests to bypass rules [ ] 
+- code refactoring may be needed [ ] 
 
 ## Usage
 First, you need to install the Python libraries that this script depends on, which can be installed with the following command:
