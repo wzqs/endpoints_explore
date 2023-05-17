@@ -51,6 +51,10 @@ $ cat normal_paths_dict.txt
 /api/
 /manage/
 ```
+screenshot:
+
+![image](https://github.com/wzqs/endpoints_explore/assets/71961807/3556e555-18fd-4c5d-959c-fa7ab679f833)
+
 
 ### Tips
 Although the script does not directly support multi-URL scanning, you can use it in conjunction with other security tools.
