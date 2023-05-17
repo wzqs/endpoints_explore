@@ -10,10 +10,10 @@ This script uses the aiohttp library to make asynchronous HTTP requests and scan
 - Supports checking if paths exist before scanning
 
 ## TODO
-
-- add bypass jetty rules [ ] 
+- add bypass jetty rules [ ]
 - filter valid results by the length of diff_value [ ] 
 - add more headers to requests to bypass rules [ ] 
+- generate the normal_paths_dict rules based on the domain [ ]
 - code refactoring may be needed [ ] 
 
 ## Usage
