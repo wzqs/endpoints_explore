@@ -1,3 +1,5 @@
+[中文版](https://xz.aliyun.com/t/12530)
+
 # endpoints_explore
 Endpoints Explorer is a Python script that employs multiple bypass rules to discover sensitive SpringBoot Actuator Endpoints (and supports other sensitive endpoints).
 
