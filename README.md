@@ -1,10 +1,10 @@
 [中文版](https://xz.aliyun.com/t/12530)
 
 # endpoints_explore
-Endpoints Explorer is a Python script that employs multiple bypass rules to discover sensitive SpringBoot Actuator Endpoints (and supports other sensitive endpoints).
+Endpoints Explorer is a Python script that employs multiple bypass rules to discover sensitive endpoints
 
 ## Overview
-This script uses the aiohttp library to make asynchronous HTTP requests and scans the SpringBoot Actuator (and supports other) endpoints for sensitive information in a highly concurrent manner. The script attempts multiple bypass rules and returns as soon as sensitive information is found.
+This script uses the aiohttp library to make asynchronous HTTP requests and scans the endpoints for sensitive information in a highly concurrent manner. The script attempts multiple bypass rules and returns as soon as sensitive information is found.
 
 ## Features
 - Tests with bypass rules(`/..;/`,`/;/`,`/;js/`,`/../`,`(double)urlencode` etc.)
@@ -17,6 +17,7 @@ This script uses the aiohttp library to make asynchronous HTTP requests and scan
 - add more headers to requests to bypass rules [ ] 
 - generate the normal_paths_dict rules based on the domain [ ]
 - code refactoring may be needed [ ] 
+- clean code
 
 ## Usage
 First, you need to install the Python libraries that this script depends on, which can be installed with the following command:
@@ -70,7 +71,7 @@ cat urls_list.txt | httpx -silent | parallel -j 50 -- python3 endpoints_explorer
 subfinder -d example.com -silent | httpx -silent | xargs -I {} python3 endpoints_explorer.py {} normal_paths_dict.txt sensitive_files_dict.txt -c 50 -e
 ```
 
-In a sense, this script serves as a permission bypass tool, so its utility extends beyond just detecting actuator endpoints. 
+In a sense, this script serves as a permission bypass tool. 
 
 ### Notes
 
