@@ -49,7 +49,8 @@ class Fetcher:
                 timeout = aiohttp.ClientTimeout(total=TIMEOUT)
                 # support contain ../
                 self.url = yarl.URL(self.url, encoded=True)
-                async with self.session.get(self.url, timeout=timeout) as response:
+                # disable redirect
+                async with self.session.get(self.url, timeout=timeout, allow_redirects=False) as response:
                     content_length = response.headers.get('Content-Length')
                     if content_length is not None:
                         size = int(content_length)
@@ -58,7 +59,9 @@ class Fetcher:
                         async for data in response.content.iter_any():
                             size += len(data)
                     logger.debug(f"[DEBUG] Trying {self.url}")
-
+                    # log redirect url
+                    if 'location' in str(response).lower():
+                        logger.debug(f"[DEBUG] Redirect {self.url}")
                     if response.status == 200:
                         #  sensitive files if the content does not match the content of base_url
                         if not Util.is_similar(size, self.logged_lengths):
