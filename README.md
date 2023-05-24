@@ -144,7 +144,7 @@ Please note that while the code has been thoroughly tested, there may be potenti
 ### TODO
 - add more headers to requests to bypass rules
 - generate the normal_paths_dict rules based on the domain
-- filter 30x url
+
 
 ## Disclaimer
 This script is intended only for lawful, authorized security testing activities and must not be used for any illegal activities. Users are responsible for all consequences of using this script.
