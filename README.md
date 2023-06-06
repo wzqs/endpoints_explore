@@ -144,6 +144,7 @@ Please note that while the code has been thoroughly tested, there may be potenti
 ### TODO
 - add more headers to requests to bypass rules
 - generate the normal_paths_dict rules based on the domain
+- add some ;%2f.. bypass rules  
 
 
 ## Disclaimer
