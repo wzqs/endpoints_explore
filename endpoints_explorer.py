@@ -355,7 +355,7 @@ def main():
 
         # normal_paths = Util.apply_encoding_and_extend(normal_paths)
         # Extended suffix configuration .json , ;a.js
-        sensitive_files = Util.apply_encoding_and_extend(sensitive_files, extensions=["", ".json", ";a.js"])
+        sensitive_files = Util.apply_encoding_and_extend(sensitive_files, extensions=["", ".json", ";a.js", ";%2f..%2f..%2f%2f"])
 
         detector = Detector(config.args.base_url, normal_paths, sensitive_files, config.args.concurrency,
                             config.args.check_existence)
