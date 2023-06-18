@@ -22,8 +22,8 @@ warnings.filterwarnings("ignore", category=UserWarning, module='charset_normaliz
 # fix cookie error: illegal key
 http.cookies._is_legal_key = lambda _: True
 
-# logger configuration
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# logger configuration && save results
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[logging.FileHandler("results.log"), logging.StreamHandler()])
 logger = logging.getLogger(__name__)
 
 # Timeout configuration
