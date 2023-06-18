@@ -301,12 +301,15 @@ class Util:
         """
         if not rule:
             return []
+        # fix some path characters without urlencode
+        for path_part in rule.split('/'):
+            if path_part:
+                char_to_encode = random.choice(path_part)
+                
+                encoded_char = Util.url_encode_all(char_to_encode)
+                double_encoded_char = Util.url_encode_all(encoded_char)
 
-        char_to_encode = random.choice(rule)
-        encoded_char = Util.url_encode_all(char_to_encode)
-        double_encoded_char = Util.url_encode_all(encoded_char)
-
-        return [rule.replace(char_to_encode, encoded_char), rule.replace(char_to_encode, double_encoded_char)]
+                return [rule.replace(char_to_encode, encoded_char), rule.replace(char_to_encode, double_encoded_char)]
 
     @staticmethod
     def apply_encoding_and_extend(dictionary_items, extensions=None):
