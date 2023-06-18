@@ -81,6 +81,7 @@ Response: {"code":200,"status":0,"message":"SUCCESS","data":[{"users":"...
 - Performs highly concurrent scanning with asynchronous HTTP requests
 - Supports checking if paths exist before scanning
 - Filtered output for similar content
+- Save the results.log in current directory
 
 
 ## Usage
@@ -118,10 +119,11 @@ $ cat normal_paths_dict.txt
 /api/
 /manage/
 ```
-screenshot:
+console screenshot:
 
 ![image](https://github.com/wzqs/endpoints_explore/assets/71961807/3556e555-18fd-4c5d-959c-fa7ab679f833)
 
+The scan results are also saved in the results.log in the current directory.
 
 ### Tips
 Although the script does not directly support multi-URL scanning, you can use it in conjunction with other security tools.
