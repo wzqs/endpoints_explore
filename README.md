@@ -81,6 +81,7 @@ Response: {"code":200,"status":0,"message":"SUCCESS","data":[{"users":"...
 - Performs highly concurrent scanning with asynchronous HTTP requests
 - Supports checking if paths exist before scanning
 - Filtered output for similar content
+- support custom headers(such as xff, cookie, authorization...)
 - Save the results.log in current directory
 
 
@@ -102,6 +103,7 @@ Here is a detailed explanation of the parameters:
 - -c, --concurrency: The concurrency level, default is 5.
 - -v, --verbose: Enable verbose output.
 - -e, --check-existence: Check if the paths exist before scanning.
+- -H, --headers: Custom headers to inject in requests
 
 example:
 
@@ -122,6 +124,19 @@ $ cat normal_paths_dict.txt
 console screenshot:
 
 ![image](https://github.com/wzqs/endpoints_explore/assets/71961807/3556e555-18fd-4c5d-959c-fa7ab679f833)
+
+add headers bypass
+
+```
+python3 endpoints_explorer.py {url} {normal_paths_dict.txt} {sensitive_files_dict.txt}
+[-] No sensitive files were found:
+
+python3 endpoints_explorer.py {url} {normal_paths_dict.txt} {sensitive_files_dict.txt} -H "X-Forwarded-For: 127.0.0.1"
+[+] Sensitive endpoint found:
+
+python3 endpoints_explorer.py {url} {normal_paths_dict.txt} {sensitive_files_dict.txt} -H "Bearer abcdefg"
+[+] Sensitive endpoint found:
+```
 
 The scan results are also saved in the results.log in the current directory.
 
@@ -144,7 +159,6 @@ In a sense, this script serves as a permission bypass tool.
 Please note that while the code has been thoroughly tested, there may be potential bugs and inaccuracies. The path existence checks are not foolproof and the scanning speed is influenced by factors like your own system, the target server, and network conditions. Be aware that high concurrency might impact the server's performance. Always ensure that you have proper authorization before initiating any scans to avoid legal or ethical issues. Use responsibly.
 
 ### TODO
-- add more headers to requests to bypass rules
 - generate the normal_paths_dict rules based on the domain
 
 
