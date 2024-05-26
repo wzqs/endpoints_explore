@@ -66,6 +66,7 @@ class Fetcher:
                         #  sensitive files if the content does not match the content of base_url
                         if not Util.is_similar(size, self.logged_lengths):
                             self.logged_lengths.append(size)
+                            print(response.content)
                             logger.info(
                                 Fore.RED + f"[+] Sensitive endpoint found: {self.url}" + Fore.RESET + Fore.CYAN + f" Size: {Util.common_size(size)}" + Fore.RESET)
                             return True
@@ -150,7 +151,7 @@ class RuleGenerator:
 
 
 class Detector:
-    def __init__(self, base_url, normal_paths, sensitive_files, concurrency, check_existence):
+    def __init__(self, base_url, normal_paths, sensitive_files, concurrency, check_existence, custom_headers=None):
         self.check_existence = check_existence
         self.concurrency = concurrency
         self.sensitive_files = sensitive_files
@@ -162,13 +163,16 @@ class Detector:
         self.sslcontext.verify_mode = ssl.CERT_NONE
 
         self.connector = aiohttp.TCPConnector(ssl=self.sslcontext)
-        # common headers may be configuration later
+        # Set headers, including custom headers if provided
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
                           "Chrome/112.0.0.0 Safari/537.3",
             "Content-Type": "application/json",
             "Accept": "*/*"
         }
+
+        if custom_headers:
+            self.headers.update(custom_headers)
 
         self.diff_length = {}
         self.size_differences = {}
@@ -341,11 +345,24 @@ class Configuration:
         parser.add_argument("-v", "--verbose", action="store_true", help="Enable verbose output.")
         parser.add_argument("-e", "--check-existence", action="store_true",
                             help="Check if the paths exist before scanning.")
+        parser.add_argument("-H", "--headers", type=str, nargs='*', help="Custom headers to inject in requests.")
         args = parser.parse_args()
         if args.verbose:
             logger.setLevel(logging.DEBUG)
 
         return args
+
+    @staticmethod
+    def parse_custom_headers(headers):
+        """
+        Parse custom headers from command line arguments
+        """
+        header_dict = {}
+        if headers:
+            for header in headers:
+                key, value = header.split(':', 1)
+                header_dict[key.strip()] = value.strip()
+        return header_dict
 
 
 def main():
@@ -360,8 +377,10 @@ def main():
         # Extended suffix configuration .json , ;a.js
         sensitive_files = Util.apply_encoding_and_extend(sensitive_files, extensions=["", ".json", ";a.js", ";%2f..%2f..%2f%2f"])
 
+        custom_headers = Configuration.parse_custom_headers(config.args.headers)
+
         detector = Detector(config.args.base_url, normal_paths, sensitive_files, config.args.concurrency,
-                            config.args.check_existence)
+                            config.args.check_existence, custom_headers)
 
     except Exception as e:
         logger.error(f"Failed to initialize the Detector: {e}")
